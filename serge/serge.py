@@ -74,7 +74,7 @@ class Serge(object):
         This is useful if your monitoring is based upon a dynamic list of hosts
         pulled from the nova/neutron/cinder 'service-list'
         """
-		db_host = "{}.{}.{}".format(self.Config.get('openstack', 'endpoint'), self.zone, self.Config.get('serge', 'domain'))
+        db_host = "{}.{}.{}".format(self.Config.get('openstack', 'endpoint'), self.zone, self.Config.get('serge', 'domain'))
         try:
 
             nova_db = MySQLdb.connect(
