@@ -88,7 +88,10 @@ class Serge(object):
             cursor.execute("delete from services where host like '{}%';".format(hostname))
             nova_db.commit()
             nova_db.close()
+        except:
+            logging.error("Decommissioning of %s.%s in Nova failed", hostname, self.zone)
 
+	try:
             neutron_db = MySQLdb.connect(
                 host=db_host,
                 port=3306, user="neutronUser", passwd="neutronPass", db="neutron"
@@ -98,7 +101,10 @@ class Serge(object):
             cursor.execute("delete from ml2_port_bindings where host like '{}%';".format(hostname))
             neutron_db.commit()
             neutron_db.close()
+        except:
+            logging.error("Decommissioning of %s.%s in Neutron failed", hostname, self.zone)
 
+	try:
             cinder_db = MySQLdb.connect(
                 host=db_host,
                 port=3306, user="cinderUser", passwd="cinderPass", db="cinder"
@@ -108,7 +114,7 @@ class Serge(object):
             cinder_db.commit()
             cinder_db.close()
         except:
-            logging.error("Decommissioning of %s.%s failed", hostname, self.zone)
+            logging.error("Decommissioning of %s.%s in Cinder failed", hostname, self.zone)
 
     def set_downtime(self, hostname, endpoint, reason, duration=60):
         start_time = datetime.now()
