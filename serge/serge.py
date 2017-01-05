@@ -42,7 +42,11 @@ class Serge(object):
         self.Config.read("/etc/serge.ini")
         self.nova = client.Client(
             "2",
-            auth_url="http://{}.{}.{}:5000/v2.0/".format(self.Config.get('openstack', 'endpoint'), self.zone, self.Config.get('serge', 'domain')),
+            auth_url="http://{}.{}.{}:5000/v2.0/".format(
+                self.Config.get('openstack', 'endpoint'),
+                self.zone,
+                self.Config.get('serge', 'domain')
+            ),
             username=self.Config.get('openstack', 'username'),
             api_key=self.Config.get('openstack', 'password'),
             project_id=self.Config.get('openstack', 'project'))
@@ -51,7 +55,10 @@ class Serge(object):
             {'server': self.Config.get('jira', 'server')},
             basic_auth=(self.Config.get('jira', 'email'), self.Config.get('jira', 'password'))
         )
-        self.rs = redis.Redis('{}.{}.{}'.format(self.Config.get('redis', 'endpoint'), zone, self.Config.get('serge', 'domain')), db=2)
+        self.rs = redis.Redis('{}.{}.{}'.format(
+            self.Config.get('redis', 'endpoint'),
+            zone,
+            self.Config.get('serge', 'domain')), db=2)
         self.create_ticket = False
 
     def get_infos_from_inventory(self, hostname):
@@ -74,7 +81,11 @@ class Serge(object):
         This is useful if your monitoring is based upon a dynamic list of hosts
         pulled from the nova/neutron/cinder 'service-list'
         """
-        db_host = "{}.{}.{}".format(self.Config.get('openstack', 'endpoint'), self.zone, self.Config.get('serge', 'domain'))
+        db_host = "{}.{}.{}".format(
+            self.Config.get('openstack', 'endpoint'),
+            self.zone,
+            self.Config.get('serge', 'domain')
+        )
         try:
 
             nova_db = MySQLdb.connect(
@@ -91,7 +102,7 @@ class Serge(object):
         except:
             logging.error("Decommissioning of %s.%s in Nova failed", hostname, self.zone)
 
-	try:
+        try:
             neutron_db = MySQLdb.connect(
                 host=db_host,
                 port=3306, user="neutronUser", passwd="neutronPass", db="neutron"
@@ -104,7 +115,7 @@ class Serge(object):
         except:
             logging.error("Decommissioning of %s.%s in Neutron failed", hostname, self.zone)
 
-	try:
+        try:
             cinder_db = MySQLdb.connect(
                 host=db_host,
                 port=3306, user="cinderUser", passwd="cinderPass", db="cinder"
@@ -173,7 +184,10 @@ class Serge(object):
             return {"message" : "I can't resolve {}".format(fqdn), "result" : False}
 		# Add your own checks
 
-        return {"message" : "I don't know how to check if {} is healthy".format(fqdn), "result" : None}
+        return {
+            "message" : "I don't know how to check if {} is healthy".format(fqdn),
+            "result" : None
+        }
 
     def find_build(self, job_name, uuid):
         """
@@ -198,7 +212,11 @@ class Serge(object):
                     return {
                         "status" : build.get_status(),
                         "build_id" : job_id,
-                        "message" : "Build URL is {}/job/{}/{}".format(self.Config.get('jenkins', 'server'), job_name, job_id)
+                        "message" : "Build URL is {}/job/{}/{}".format(
+                            self.Config.get('jenkins', 'server'),
+                            job_name,
+                            job_id
+                        )
                     }
         return None
 
@@ -226,12 +244,19 @@ class Serge(object):
             return None
 
     def parse_job_console(self, job_name, build_id, instance):
-        url = "{}/job/{}/{}/consoleText".format(self.Config.get('jenkins', 'server'), job_name, build_id)
+        url = "{}/job/{}/{}/consoleText".format(
+            self.Config.get('jenkins', 'server'),
+            job_name,
+            build_id
+        )
         filename = "/tmp/jenkins-{}.txt".format(build_id)
         # TODO : use requests instead
         os.system(
-            "wget --auth-no-challenge --http-user={} --http-password={} --secure-protocol=TLSv1 {} -O {} >/dev/null 2>&1".format(
-                self.Config.get('jenkins', 'username'), self.Config.get('jenkins', 'token'), url, filename)
+            """wget --auth-no-challenge --http-user={} --http-password={}
+            --secure-protocol=TLSv1 {} -O {} >/dev/null 2>&1""".format(
+                self.Config.get('jenkins', 'username'),
+                self.Config.get('jenkins', 'token'),
+                url, filename)
         )
 
         with open(filename, "r") as ins:
@@ -539,7 +564,10 @@ class Serge(object):
             fqdn,
             username='root',
             password=self.Config.get('loadbalancer', 'password'))
-        stdin, stdout, stderr = ssh.exec_command("rm /opt/haproxy/etc/haproxy.cfg ; FACTER_puppet_role=baremetal::lb puppet agent --test --certname $(hostname -f) --server puppet-master04.us-east-1a.public --environment openstack --color=false")
+        stdin, stdout, stderr = ssh.exec_command(
+            """ rm /opt/haproxy/etc/haproxy.cfg;
+            FACTER_puppet_role=baremetal::lb puppet agent --test --certname $(hostname -f) --server {}
+            --environment openstack --color=false""".format(self.Config.get('puppet', 'masters'))
         out = "".join(stdout.readlines())
         err = ""
         for line in stderr.readlines():
