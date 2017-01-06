@@ -398,14 +398,12 @@ class Serge(object):
         logging.info(cmd)
         os.system(cmd)
         if os.path.isfile("/tmp/%s.txt" % ipmi_ip):
-            os.system('sed -i "s/[ \t]*$//" /tmp/{}.txt'.format(ipmi_ip))
             md5 = hashlib.md5()
-            fhandle = open("/tmp/%s.txt" % ipmi_ip)
-            for line in fhandle:
-                md5.update(line)
-            fhandle.close()
-            md5_host = md5.hexdigest()
-            return md5_host
+            with open("/tmp/%s.txt" % ipmi_ip) as fhandle:
+                for line in fhandle:
+                    if line.rstrip():
+                        md5.update(line.rstrip())
+            return md5.hexdigest()
         else:
             logging.error("I was unable to fetch the bios checksum for %s", ipmi_ip)
         return None
@@ -565,9 +563,9 @@ class Serge(object):
             username='root',
             password=self.Config.get('loadbalancer', 'password'))
         stdin, stdout, stderr = ssh.exec_command(
-            """ rm /opt/haproxy/etc/haproxy.cfg;
-            FACTER_puppet_role=baremetal::lb puppet agent --test --certname $(hostname -f) --server {}
-            --environment openstack --color=false""".format(self.Config.get('puppet', 'masters'))
+            """ puppet agent --test --certname $(hostname -f) --server {} --color=false""".format(
+                self.Config.get('puppet', 'masters'))
+        )
         out = "".join(stdout.readlines())
         err = ""
         for line in stderr.readlines():
