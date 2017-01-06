@@ -393,7 +393,8 @@ class Serge(object):
         return specs
 
     def get_bios_checksum(self, ipmi_ip):
-        cmd = "sum -i {} -u {} -p {} -c GetCurrentBiosCfgTextFile --file /tmp/{}.txt --overwrite > /dev/null".format(
+        cmd = """sum -i {} -u {} -p {} -c GetCurrentBiosCfgTextFile --file /tmp/{}.txt
+        --overwrite > /dev/null""".format(
             ipmi_ip,
             self.Config.get('ipmi', 'username'),
             self.Config.get('ipmi', 'password'),
@@ -449,11 +450,20 @@ class Serge(object):
 
             if md5_host == md5_ref.hexdigest():
                 logging.debug(
-                    "Reference bios config checksum for %s matches %s :)", hostname, md5_ref.hexdigest())
+                    "Reference bios config checksum for %s matches %s :)",
+                    hostname, md5_ref.hexdigest()
+                )
                 return ""
             else:
-                diff = (commands.getstatusoutput('diff /tmp/{}.txt ./inventory/bios/{}-{}'.format(ipmi_ip, specs['boardproductname'], specs['bios_version']))[1])
-                logging.error("Reference bios config checksum for %s.%s DOES NOT MATCH %s!", hostname, self.zone, md5_ref.hexdigest())
+                diff = (commands.getstatusoutput(
+                    'diff /tmp/{}.txt ./inventory/bios/{}-{}'.format(
+                        ipmi_ip, specs['boardproductname'], specs['bios_version']
+                        ))[1]
+                       )
+                logging.error(
+                    "Reference bios config checksum for %s.%s DOES NOT MATCH %s!",
+                    hostname, self.zone, md5_ref.hexdigest()
+                )
                 logging.debug(diff)
                 return diff
         else:
@@ -474,11 +484,17 @@ class Serge(object):
         inventory = self.get_infos_from_inventory(hostname)
         if inventory == None:
             logging.error("Cannot find inventory details for %s, aborting", hostname)
-            return {"message" : "Cannot find inventory details for {}, aborting".format(hostname), "result" : False}
+            return {
+                "message" : "Cannot find inventory details for {}, aborting".format(hostname),
+                "result" : False
+            }
         specs = self.get_specs_for_hostname(hostname)
         if specs == None:
             logging.error("Cannot find specs for %s, aborting", hostname)
-            return {"message" : "Cannot find specs for {}, aborting".format(hostname), "result" : False}
+            return {
+                "message" : "Cannot find specs for {}, aborting".format(hostname),
+                "result" : False
+            }
         logging.info("Clearing bios info in cache for %s", hostname)
         for rkey in self.rs.keys('bios*'):
             self.rs.srem(rkey, hostname)
@@ -601,9 +617,17 @@ class Serge(object):
         try:
             hosts = self.nova.hypervisors.search(hostname, True)
             if len(hosts) > 1:
-                return {"message" : "More than one hypervisor matching '{} in {}', please refine your search".format(hostname, self.zone), "instances": None}
+                return {
+                    "message" : """More than one hypervisor matching '{} in {}', please
+                        refine your search""".format(hostname, self.zone),
+                    "instances": None
+                }
             elif len(hosts) == 0:
-                return {"message" : "No hypervisor matching '{} in {}', please correct your search".format(hostname, self.zone), "instances": None}
+                return {
+                    "message" : """"No hypervisor matching '{} in {}', please correct
+                        your search""".format(hostname, self.zone),
+                    "instances": None
+                }
             else:
                 # Look for instances
                 search_opts = {'host': hostname, 'all_tenants':1}
@@ -614,7 +638,8 @@ class Serge(object):
                     out = ""
                     instances = []
                     for instance in list:
-                        out = out + "{} [{}] is in state {}, hosted on {}, flavor {} and created {}, ip(s): ".format(
+                        out = out + """{} [{}] is in state {}, hosted on {}, flavor {}
+                        and created {}, ip(s): """.format(
                             instance.name,
                             instance.id,
                             instance.status,
@@ -631,7 +656,8 @@ class Serge(object):
                         instances.append(instance.name)
                     return {"message" : out, "instances" : instances}
         except (novaclient.exceptions.NotFound) as err:
-            return {"message" : "No hypervisor matching '{} in {}', please correct your search".format(hostname, self.zone)}
+            return {"message" : """No hypervisor matching '{} in {}', please correct
+                your search""".format(hostname, self.zone)}
 
     def get_instance_details(self, instance):
         search_opts = {'name': instance, 'all_tenants':1}
@@ -652,7 +678,8 @@ class Serge(object):
                 else:
                     instance_host = "N/A"
 
-                out = out + "{} [{}] is in state {}, hosted on {} (pool {}), flavor {} and created {}, ip(s): ".format(
+                out = out + """{} [{}] is in state {}, hosted on {} (pool {}),
+                flavor {} and created {}, ip(s): """.format(
                     instance.name,
                     instance.id,
                     instance.status,
@@ -685,14 +712,21 @@ class Serge(object):
                 return {"message" : out}
 
     def work_on_instance(self, task, instance, title, body, issue=None):
-        new_issue = self.jira.create_issue(project='OPS', summary=title, description=body, issuetype={'name': 'System Change'})
+        new_issue = self.jira.create_issue(
+            project='OPS',
+            summary=title,
+            description=body,
+            issuetype={'name': 'System Change'}
+        )
         if issue != None:
             self.jira.create_issue_link(
                 type="Blocks",
                 inwardIssue=new_issue.key,
                 outwardIssue=issue,
                 comment={
-                    "body": "Setting '%s' as a blocker of maintenance '%s'" % (new_issue.key, issue),
+                    "body": "Setting '{}' as a blocker of maintenance '{}'".format(
+                        new_issue.key, issue
+                    ),
                 }
             )
         lbs = self.Config.get('openstack', 'loadbalancers')
@@ -702,7 +736,8 @@ class Serge(object):
            instance.startswith('rtb-adserver') or \
            instance.startswith('rtb-adevent'):
             title = "Reload load balancers configuration in {}".format(self.zone)
-            body = "The instances listed in attached tickets have been cycled, we need to reload the load balancers."
+            body = """The instances listed in attached tickets have been cycled,
+                we need to reload the load balancers."""
 
             lb_ticket_id = self.check_jira_ticket_by_title(
                 title=title,
@@ -734,7 +769,9 @@ class Serge(object):
                 inwardIssue=new_issue.key,
                 outwardIssue=lb_ticket_id,
                 comment={
-                    "body": "Setting '%s' as a blocker of load balancer config reload : '%s'" % (new_issue.key, lb_ticket_id),
+                    "body": "Setting '{}' as blocker of load balancer config reload : '{}'".format(
+                        new_issue.key, lb_ticket_id
+                    ),
                 }
             )
         if task in ["cycle", "stop"]:
