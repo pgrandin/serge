@@ -317,7 +317,10 @@ class Serge(object):
                         title = "{}.{} is disabled with a closed ticket".format(
                             hostname, self.zone
                         )
-                        body = "{} ({}). This should not happen.".format(title, service.disabled_reason)
+                        body = "{} ({}). This should not happen.".format(
+                            title,
+                            service.disabled_reason
+                        )
                         self.check_jira_ticket_by_title(title=title, body=body)
                 else:
                     title = "{}.{} is disabled without a reason".format(hostname, self.zone)
@@ -331,7 +334,7 @@ class Serge(object):
         issue = self.jira.issue(jira_id)
         if issue:
             status = str(issue.fields.status)
-            if not status in ['Open', 'In Progress', 'Reopened']:
+            if status not in ['Open', 'In Progress', 'Reopened']:
                 logging.info("%s : %s that's not valid", str(issue.key), str(issue.fields.status)
                             )
                 return False
@@ -411,7 +414,7 @@ class Serge(object):
     def get_bios_config_diff(self, ipmi_ip, hostname, ignore_cache=False):
         specs = self.get_specs_for_hostname(hostname)
         md5_ref = hashlib.md5()
-        if not "boardproductname" in specs or not "bios_version" in specs:
+        if "boardproductname" not in specs or "bios_version" not in specs:
             return None
         filename = "./inventory/bios/{}-{}".format(
             specs['boardproductname'], specs['bios_version']
@@ -497,13 +500,23 @@ class Serge(object):
         self.rs.delete(hostname)
         if reboot:
             self.safe_reboot(hostname)
-        return {"message" : "Bios config for {}.{} updated with template {}-{}".format(hostname, self.zone, specs['boardproductname'], specs['bios_version']), "result" : True}
+        return {
+            "message" : "Bios config for {}.{} updated with template {}-{}".format(
+                hostname,
+                self.zone,
+                specs['boardproductname'],
+                specs['bios_version']
+            ), "result" : True}
 
     def wait_for_connectivity(self, hostname):
         response = -1
         while response != 0:
             time.sleep(10)
-            response = os.system("ping -c 1 {}.{}.{} > /dev/null".format(hostname, self.zone, self.Config.get('serge', 'domain')))
+            response = os.system(
+                "ping -c 1 {}.{}.{} > /dev/null".format(
+                    hostname, self.zone, self.Config.get('serge', 'domain')
+                )
+            )
 
     def wait_for_specs(self, hostname):
         specs = None
@@ -575,7 +588,10 @@ class Serge(object):
         if err == "":
             self.jira.add_comment(ticket, "{} updated, no errors detected".format(fqdn))
         else:
-            self.jira.add_comment(ticket, "Update of {}, Stderr: {noformat}%s{noformat} " .format(fqdn, err))
+            self.jira.add_comment(
+                ticket,
+                "Update of {}, Stderr: {noformat}%s{noformat} " .format(fqdn, err)
+            )
         if err == "":
             return True
         return False
@@ -661,7 +677,10 @@ class Serge(object):
                 text_file = open("/tmp/will/%s" % my_uuid, "w")
                 text_file.write("<pre>%s</pre>" % out)
                 text_file.close()
-                return {"message" : "More than 5 results, exported here : http://{}/lists/{}".format(self.Config.get('serge', 'fqdn'), my_uuid)}
+                return {
+                    "message" : "More than 5 results, exported here : http://{}/lists/{}".format(
+                        self.Config.get('serge', 'fqdn'), my_uuid)
+                }
             else:
                 return {"message" : out}
 
@@ -685,14 +704,27 @@ class Serge(object):
             title = "Reload load balancers configuration in {}".format(self.zone)
             body = "The instances listed in attached tickets have been cycled, we need to reload the load balancers."
 
-            lb_ticket_id = self.check_jira_ticket_by_title(title=title, body=body, umbrella=None, create_ticket=False)
+            lb_ticket_id = self.check_jira_ticket_by_title(
+                title=title,
+                body=body,
+                umbrella=None,
+                create_ticket=False)
+
             if lb_ticket_id == None:
-                lb_ticket = self.jira.create_issue(project='OPS', summary=title, description=body, issuetype={'name': 'System Change'})
+                lb_ticket = self.jira.create_issue(
+                    project='OPS',
+                    summary=title,
+                    description=body,
+                    issuetype={'name': 'System Change'}
+                    )
                 lb_ticket_id = lb_ticket.key
                 lb_issue = self.jira.issue(lb_ticket_id)
                 self.jira.assign_issue(lb_issue, self.Config.get('jira', 'email'))
                 for load_balancer in lbs:
-                    self.jira.add_comment(lb_issue, "task update lb {} in {}".format(load_balancer, self.zone))
+                    self.jira.add_comment(
+                        lb_issue,
+                        "task update lb {} in {}".format(load_balancer, self.zone)
+                    )
             try:
                 lb_issue
             except NameError:
@@ -706,11 +738,23 @@ class Serge(object):
                 }
             )
         if task in ["cycle", "stop"]:
-            self.jira.add_comment(new_issue, "task stop instance {}.{}.{}".format(instance, self.Config.get('openstack', 'tenant'), self.zone))
+            self.jira.add_comment(
+                new_issue,
+                "task stop instance {}.{}.{}".format(
+                    instance, self.Config.get('openstack', 'tenant'), self.zone)
+            )
         if task in ["cycle", "start"]:
-            self.jira.add_comment(new_issue, "task start instance {}.{}.{}".format(instance, self.Config.get('openstack', 'tenant'), self.zone))
+            self.jira.add_comment(
+                new_issue,
+                "task start instance {}.{}.{}".format(
+                    instance, self.Config.get('openstack', 'tenant'), self.zone)
+            )
         self.jira.assign_issue(new_issue, self.Config.get('jira', 'email'))
-        return {"message" : "Will be done in {}/browse/{}".format(self.Config.get('jira', 'server'), new_issue.key), "result": True}
+        return {
+            "message" : "Will be done in {}/browse/{}".format(
+                self.Config.get('jira', 'server'), new_issue.key),
+            "result": True
+        }
 
     def start_instance(self, instance, title, body):
         """ Schedule a task in a Jira ticket to start an instance """
@@ -727,7 +771,9 @@ class Serge(object):
     def check_java_process_on_instance(self, instance):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        k = paramiko.RSAKey.from_private_key_file("./ssh-keypairs/{}/{}".format(self.zone[:-1], self.Config.get('openstack', 'tenant')))
+        k = paramiko.RSAKey.from_private_key_file(
+            "./ssh-keypairs/{}/{}".format(self.zone[:-1], self.Config.get('openstack', 'tenant'))
+        )
 
         fqdn = "{}.{}.{}".format(instance, self.Config.get('openstack', 'tenant'), self.zone)
 
